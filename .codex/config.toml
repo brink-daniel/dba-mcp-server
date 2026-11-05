@@ -1,0 +1,4 @@
+[mcp_servers.dba_mcp_server]
+url = "http://localhost:8080/mcp"
+enabled = true
+bearer_token_env_var = "DBA_MCP_TOKEN"

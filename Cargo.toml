@@ -1,0 +1,19 @@
+[package]
+name = "dba-mcp-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rmcp = { version = "3.8", features = ["server", "macros", "transport-streamable-http-server", "transport-streamable-http-server-session"] }
+axum = { version = "0.8.9" }
+tower-http = { version = "0.7.1", features = ["cors"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154" }
+anyhow = { version = "1.0.104" }
+schemars = { version = "1.2.3" }
+tiberius = { version = "0.13.0", default-features = false, features = ["rustls", "tds73", "winauth", "chrono"] }
+tokio-util = { version = "0.7", features = ["compat"] }
+chrono = { version = "0.4" }
+getrandom = { version = "0.4.3" }
+

@@ -1,0 +1,19 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "dba-mcp-token",
+      "description": "DBA MCP bearer token",
+      "password": true
+    }
+  ],
+  "servers": {
+    "dba-mcp-server": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:dba-mcp-token}"
+      }
+    }
+  }
+}
