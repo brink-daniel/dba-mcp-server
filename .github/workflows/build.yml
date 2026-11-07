@@ -1,0 +1,64 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Increment patch version
+        shell: pwsh
+        run: |
+          $manifest = 'Cargo.toml'
+          $content = Get-Content $manifest -Raw
+          $match = [regex]::Match($content, '(?ms)^\[package\]\s.*?^version\s*=\s*"(\d+)\.(\d+)\.(\d+)"')
+          if (-not $match.Success) { throw 'Could not find a numeric package version in Cargo.toml.' }
+          $major = [int]$match.Groups[1].Value
+          $minor = [int]$match.Groups[2].Value
+          $patch = [int]$match.Groups[3].Value + 1
+          $version = "$major.$minor.$patch"
+          $content = $content.Remove($match.Groups[0].Index, $match.Groups[0].Length).Insert($match.Groups[0].Index, ($match.Groups[0].Value -replace '"\d+\.\d+\.\d+"', "`"$version`""))
+          Set-Content $manifest $content -NoNewline
+
+          $lock = Get-Content 'Cargo.lock' -Raw
+          $package = '(?ms)(^\[\[package\]\]\s*\r?\nname\s*=\s*"dba-mcp-server"\s*\r?\nversion\s*=\s*")\d+\.\d+\.\d+("\s*)'
+          $updated = ([regex]::new($package)).Replace($lock, "`${1}$version`${2}", 1)
+          if ($updated -eq $lock) { throw 'Could not find dba-mcp-server in Cargo.lock.' }
+          Set-Content 'Cargo.lock' $updated -NoNewline
+          "version=$version" >> $env:GITHUB_OUTPUT
+        id: bump
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dba-mcp-server-${{ steps.bump.outputs.version }}-windows
+          path: target/release/dba-mcp-server.exe
+          if-no-files-found: error
+
+      - name: Commit version increment
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Cargo.toml Cargo.lock
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }}"
+          git push
