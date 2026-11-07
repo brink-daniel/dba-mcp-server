@@ -3,7 +3,7 @@ use rmcp::{handler::server::wrapper::Parameters, schemars, tool, tool_router};
 use serde::Deserialize;
 use tiberius::ToSql;
 
-use super::SqlServerTools;
+use super::{SqlServerTools, log_tool_call};
 use crate::query_instance;
 
 const JOBS_BY_INSTANCE_QUERY: &str = include_str!("../../queries/jobs_by_instance.sql");
@@ -40,14 +40,17 @@ struct JobsRunningBetweenArgs {
 impl SqlServerTools {
     #[tool(description = "Lists SQL Server Agent jobs on a SQL Server instance")]
     async fn get_sqlagent_jobs(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
-        query_instance(
-            &args.instance,
-            Some("msdb"),
-            JOBS_BY_INSTANCE_QUERY.trim(),
-            &[],
-        )
+        log_tool_call("get_sqlagent_jobs", async {
+            query_instance(
+                &args.instance,
+                Some("msdb"),
+                JOBS_BY_INSTANCE_QUERY.trim(),
+                &[],
+            )
+            .await
+            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
         .await
-        .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
     }
 
     #[tool(description = "Retrieves execution history for a SQL Server Agent job by name")]
@@ -55,15 +58,18 @@ impl SqlServerTools {
         &self,
         Parameters(args): Parameters<JobHistoryArgs>,
     ) -> String {
-        let params: [&dyn ToSql; 1] = [&args.job_name];
-        query_instance(
-            &args.instance,
-            Some("msdb"),
-            JOB_HISTORY_QUERY.trim(),
-            &params,
-        )
+        log_tool_call("get_sqlagent_job_history_by_job_name", async {
+            let params: [&dyn ToSql; 1] = [&args.job_name];
+            query_instance(
+                &args.instance,
+                Some("msdb"),
+                JOB_HISTORY_QUERY.trim(),
+                &params,
+            )
+            .await
+            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
         .await
-        .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
     }
 
     #[tool(description = "Lists SQL Server Agent job executions that overlapped a time range")]
@@ -71,27 +77,30 @@ impl SqlServerTools {
         &self,
         Parameters(args): Parameters<JobsRunningBetweenArgs>,
     ) -> String {
-        let parse = |value: &str| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f");
-        let start = match parse(&args.start_datetime) {
-            Ok(value) => value,
-            Err(error) => return format!("Invalid start_datetime: {error}"),
-        };
-        let end = match parse(&args.end_datetime) {
-            Ok(value) => value,
-            Err(error) => return format!("Invalid end_datetime: {error}"),
-        };
-        if start > end {
-            return "Invalid time range: start_datetime must be before or equal to end_datetime"
-                .into();
-        }
-        let params: [&dyn ToSql; 2] = [&start, &end];
-        query_instance(
-            &args.instance,
-            Some("msdb"),
-            JOBS_RUNNING_QUERY.trim(),
-            &params,
-        )
+        log_tool_call("get_sqlagent_jobs_running_between_start_end_time", async {
+            let parse = |value: &str| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f");
+            let start = match parse(&args.start_datetime) {
+                Ok(value) => value,
+                Err(error) => return format!("Invalid start_datetime: {error}"),
+            };
+            let end = match parse(&args.end_datetime) {
+                Ok(value) => value,
+                Err(error) => return format!("Invalid end_datetime: {error}"),
+            };
+            if start > end {
+                return "Invalid time range: start_datetime must be before or equal to end_datetime"
+                    .into();
+            }
+            let params: [&dyn ToSql; 2] = [&start, &end];
+            query_instance(
+                &args.instance,
+                Some("msdb"),
+                JOBS_RUNNING_QUERY.trim(),
+                &params,
+            )
+            .await
+            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
         .await
-        .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
     }
 }

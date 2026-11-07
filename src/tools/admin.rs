@@ -2,7 +2,7 @@ use rmcp::{handler::server::wrapper::Parameters, schemars, tool, tool_router};
 use serde::Deserialize;
 use tiberius::ToSql;
 
-use super::SqlServerTools;
+use super::{SqlServerTools, log_tool_call};
 use crate::query_instance;
 
 const BACKUP_HISTORY_QUERY: &str = include_str!("../../queries/backup_history_by_database.sql");
@@ -41,15 +41,18 @@ impl SqlServerTools {
         &self,
         Parameters(args): Parameters<BackupHistoryArgs>,
     ) -> String {
-        let params: [&dyn ToSql; 1] = [&args.database];
-        query_instance(
-            &args.instance,
-            Some("msdb"),
-            BACKUP_HISTORY_QUERY.trim(),
-            &params,
-        )
+        log_tool_call("get_backup_history_by_database", async {
+            let params: [&dyn ToSql; 1] = [&args.database];
+            query_instance(
+                &args.instance,
+                Some("msdb"),
+                BACKUP_HISTORY_QUERY.trim(),
+                &params,
+            )
+            .await
+            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
         .await
-        .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
     }
 
     #[tool(description = "Retrieves restore history for a database on a SQL Server instance")]
@@ -57,33 +60,42 @@ impl SqlServerTools {
         &self,
         Parameters(args): Parameters<BackupHistoryArgs>,
     ) -> String {
-        let params: [&dyn ToSql; 1] = [&args.database];
-        query_instance(
-            &args.instance,
-            Some("msdb"),
-            RESTORE_HISTORY_QUERY.trim(),
-            &params,
-        )
+        log_tool_call("get_restore_history_by_database", async {
+            let params: [&dyn ToSql; 1] = [&args.database];
+            query_instance(
+                &args.instance,
+                Some("msdb"),
+                RESTORE_HISTORY_QUERY.trim(),
+                &params,
+            )
+            .await
+            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
         .await
-        .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
     }
 
     #[tool(description = "Reads entries from the SQL Server error log")]
     async fn get_server_errorlog(&self, Parameters(args): Parameters<ErrorLogArgs>) -> String {
-        read_error_log(
-            &args.instance,
-            args.log_number.unwrap_or(0),
-            SERVER_ERRORLOG_QUERY,
+        log_tool_call(
+            "get_server_errorlog",
+            read_error_log(
+                &args.instance,
+                args.log_number.unwrap_or(0),
+                SERVER_ERRORLOG_QUERY,
+            ),
         )
         .await
     }
 
     #[tool(description = "Reads entries from the SQL Server Agent error log")]
     async fn get_agent_errorlog(&self, Parameters(args): Parameters<ErrorLogArgs>) -> String {
-        read_error_log(
-            &args.instance,
-            args.log_number.unwrap_or(0),
-            AGENT_ERRORLOG_QUERY,
+        log_tool_call(
+            "get_agent_errorlog",
+            read_error_log(
+                &args.instance,
+                args.log_number.unwrap_or(0),
+                AGENT_ERRORLOG_QUERY,
+            ),
         )
         .await
     }
@@ -95,14 +107,17 @@ impl SqlServerTools {
         &self,
         Parameters(args): Parameters<AvailabilityGroupStatusArgs>,
     ) -> String {
-        query_instance(
-            &args.instance,
-            None,
-            AVAILABILITY_GROUP_STATUS_QUERY.trim(),
-            &[],
-        )
+        log_tool_call("get_availability_group_status", async {
+            query_instance(
+                &args.instance,
+                None,
+                AVAILABILITY_GROUP_STATUS_QUERY.trim(),
+                &[],
+            )
+            .await
+            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
         .await
-        .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
     }
 }
 

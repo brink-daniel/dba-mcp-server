@@ -1,7 +1,7 @@
 use rmcp::{handler::server::wrapper::Parameters, schemars, tool, tool_router};
 use serde::Deserialize;
 
-use super::SqlServerTools;
+use super::{SqlServerTools, log_tool_call};
 use crate::query_instance;
 
 const CURRENT_ACTIVITY_QUERY: &str = include_str!("../../queries/current_activity.sql");
@@ -19,38 +19,50 @@ struct InstanceArgs {
 impl SqlServerTools {
     #[tool(description = "Retrieves the current SQL Server activity")]
     async fn get_current_activity(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
-        query_instance(&args.instance, None, CURRENT_ACTIVITY_QUERY.trim(), &[])
-            .await
-            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        log_tool_call("get_current_activity", async {
+            query_instance(&args.instance, None, CURRENT_ACTIVITY_QUERY.trim(), &[])
+                .await
+                .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
+        .await
     }
 
     #[tool(description = "Lists the databases available on a SQL Server instance")]
     async fn get_databases(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
-        query_instance(
-            &args.instance,
-            None,
-            DATABASES_BY_INSTANCE_QUERY.trim(),
-            &[],
-        )
+        log_tool_call("get_databases", async {
+            query_instance(
+                &args.instance,
+                None,
+                DATABASES_BY_INSTANCE_QUERY.trim(),
+                &[],
+            )
+            .await
+            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
         .await
-        .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
     }
 
     #[tool(
         description = "Reports total and available disk space for volumes containing SQL Server database files"
     )]
     async fn get_disk_space(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
-        query_instance(&args.instance, None, DISK_SPACE_QUERY.trim(), &[])
-            .await
-            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        log_tool_call("get_disk_space", async {
+            query_instance(&args.instance, None, DISK_SPACE_QUERY.trim(), &[])
+                .await
+                .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
+        .await
     }
 
     #[tool(
         description = "Reports allocated size, maximum size, and autogrowth settings for database files"
     )]
     async fn get_database_file_usage(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
-        query_instance(&args.instance, None, DATABASE_FILE_USAGE_QUERY.trim(), &[])
-            .await
-            .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        log_tool_call("get_database_file_usage", async {
+            query_instance(&args.instance, None, DATABASE_FILE_USAGE_QUERY.trim(), &[])
+                .await
+                .unwrap_or_else(|error| format!("SQL Server error: {error:#}"))
+        })
+        .await
     }
 }

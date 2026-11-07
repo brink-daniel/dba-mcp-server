@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Instant};
 
 use anyhow::{Context, Result, bail, ensure};
 use axum::{
@@ -29,6 +29,22 @@ async fn require_bearer_token(
     } else {
         (StatusCode::UNAUTHORIZED, [("www-authenticate", "Bearer")]).into_response()
     }
+}
+
+async fn log_requests(request: Request, next: Next) -> Response {
+    let method = request.method().clone();
+    let path = request.uri().path().to_string();
+    let started = Instant::now();
+
+    println!("[{}] --> {method} {path}", chrono::Utc::now().to_rfc3339());
+    let response = next.run(request).await;
+    println!(
+        "[{}] <-- {method} {path} {} ({:?})",
+        chrono::Utc::now().to_rfc3339(),
+        response.status(),
+        started.elapsed()
+    );
+    response
 }
 
 mod tools;
@@ -85,6 +101,7 @@ async fn main() -> Result<()> {
             Arc::<str>::from(token.as_str()),
             require_bearer_token,
         ))
+        .layer(axum::middleware::from_fn(log_requests))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
@@ -147,7 +164,9 @@ fn parse_args() -> Result<CliOptions> {
                 println!("      --path <path>       MCP endpoint path (default: /mcp)");
                 println!("      --dns-name <name>   Add a DNS name to the allowed Host list");
                 println!("      --token <token>     Set bearer token (generated if omitted)");
-                println!("\nExample: dba-mcp-server --port 9000 --path /database-tools --dns-name dba.example.com");
+                println!(
+                    "\nExample: dba-mcp-server --port 9000 --path /database-tools --dns-name dba.example.com"
+                );
                 std::process::exit(0);
             }
             "--version" | "-V" => {
