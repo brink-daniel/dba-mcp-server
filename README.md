@@ -24,6 +24,8 @@ Available options:
 
 | Option | Default | Purpose |
 | --- | --- | --- |
+| `--help`, `-h` | — | Prints command-line usage and exits. |
+| `--version`, `-V` | — | Prints the package name and version, then exits. |
 | `--port <port>` | `8080` | HTTP listening port. |
 | `--path <path>` | `/mcp` | MCP endpoint path. |
 | `--dns-name <name>` | none | Adds a DNS name to the MCP server's allowed Host list and prints its endpoint. |

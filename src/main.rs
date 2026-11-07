@@ -38,10 +38,10 @@ use tools::SqlServerTools;
 mod db;
 pub(crate) use db::query_instance;
 
-// Named command-line parameters: --port <port>, --path <path>,
-// --dns-name <name>, and --token <token>. Defaults are port 8080 and path /mcp;
-// the DNS name and token are optional. If token is omitted, a cryptographically
-// random token is generated at startup.
+// Named command-line parameters: --help, --version, --port <port>,
+// --path <path>, --dns-name <name>, and --token <token>. Defaults are port
+// 8080 and path /mcp; the DNS name and token are optional. If token is omitted,
+// a cryptographically random token is generated at startup.
 // Examples:
 //   cargo run
 //   cargo run -- --port 9000 --path /database-tools --dns-name dba.example.com
@@ -138,13 +138,20 @@ fn parse_args() -> Result<CliOptions> {
             "--dns-name" => options.dns_name = Some(args.next().ok_or_else(value)?),
             "--token" => options.token = Some(args.next().ok_or_else(value)?),
             "--help" | "-h" => {
-                println!(
-                    "Usage: dba-mcp-server [--port <port>] [--path <path>] [--dns-name <name>] [--token <token>]"
-                );
-                println!("Defaults: --port 8080 --path /mcp; token is generated if omitted.");
-                println!(
-                    "Example: dba-mcp-server --port 9000 --path /database-tools --dns-name dba.example.com"
-                );
+                println!("dba-mcp-server {}", env!("CARGO_PKG_VERSION"));
+                println!("Usage: dba-mcp-server [OPTIONS]\n");
+                println!("Options:");
+                println!("  -h, --help              Print help information");
+                println!("  -V, --version           Print version information");
+                println!("      --port <port>       HTTP port (default: 8080)");
+                println!("      --path <path>       MCP endpoint path (default: /mcp)");
+                println!("      --dns-name <name>   Add a DNS name to the allowed Host list");
+                println!("      --token <token>     Set bearer token (generated if omitted)");
+                println!("\nExample: dba-mcp-server --port 9000 --path /database-tools --dns-name dba.example.com");
+                std::process::exit(0);
+            }
+            "--version" | "-V" => {
+                println!("dba-mcp-server {}", env!("CARGO_PKG_VERSION"));
                 std::process::exit(0);
             }
             _ => bail!("Unknown command-line option: {option}. Use --help for usage."),
