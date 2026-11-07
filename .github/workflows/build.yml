@@ -62,3 +62,14 @@ jobs:
           git add Cargo.toml Cargo.lock
           git commit -m "chore: bump version to ${{ steps.bump.outputs.version }}"
           git push
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release create "v${{ steps.bump.outputs.version }}" `
+            'target/release/dba-mcp-server.exe' `
+            --title "dba-mcp-server v${{ steps.bump.outputs.version }}" `
+            --notes "Windows release for version ${{ steps.bump.outputs.version }}." `
+            --target main
