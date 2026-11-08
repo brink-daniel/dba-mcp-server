@@ -17,6 +17,20 @@ Use the `dba_mcp_server` MCP connection for SQL Server administration and diagno
 
 ## Tool use
 
+- The server exposes these tools:
+  - `get_databases(instance)` — lists databases and their status and settings.
+  - `get_current_activity(instance)` — shows active requests, waits, blockers, and SQL text.
+  - `get_disk_space(instance)` — reports disk capacity for SQL Server data volumes.
+  - `get_database_file_usage(instance)` — reports database file size, growth settings, and paths.
+  - `get_backup_history_by_database(instance, database)` — reads backup history.
+  - `get_restore_history_by_database(instance, database)` — reads restore history.
+  - `get_server_errorlog(instance, log_number?)` — reads the SQL Server error log.
+  - `get_agent_errorlog(instance, log_number?)` — reads the SQL Server Agent error log.
+  - `get_sqlagent_jobs(instance)` — lists SQL Server Agent jobs.
+  - `get_sqlagent_job_history_by_job_name(instance, job_name)` — reads history for a named job.
+  - `get_sqlagent_jobs_running_between_start_end_time(instance, start_datetime, end_datetime)` — lists job runs overlapping a time range.
+  - `get_timeouts(instance, database, start_datetime?, end_datetime?)` — reads Query Store client-aborted execution aggregates.
+  - `get_availability_group_status(instance)` — reports availability group and replica status.
 - Pass the requested SQL Server host with the `instance` argument, such as `localhost` or `server-name:1433`. Use the target the user names; do not assume `localhost` otherwise. Port defaults to `1433`.
 - Use `get_databases` to discover databases before choosing a database-specific tool when the database name is unknown.
 - Choose the narrowest relevant tool: `get_current_activity` for active requests and blocking, `get_disk_space` for volume free space, `get_database_file_usage` for file allocation and growth settings, backup/restore tools for history, SQL Agent tools for jobs, and `get_availability_group_status` for Always On status.

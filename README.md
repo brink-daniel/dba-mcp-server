@@ -1,10 +1,10 @@
 # DBA MCP Server
 
-A read-only Model Context Protocol (MCP) server for SQL Server administration and diagnostics. It serves MCP over Streamable HTTP and connects to SQL Server with the Windows identity running the server.
+Use the MCP client to check SQL Server health, activity, backups, SQL Agent jobs, error logs, and availability groups. The server runs on Windows and uses the Windows account that starts it to connect to SQL Server.
 
 ## Requirements
 
-- Windows and a Rust toolchain that supports the 2024 edition.
+- Windows and the `dba-mcp-server.exe` executable.
 - Network access from the server process to each target SQL Server.
 - A Windows account with the SQL Server permissions required by the tools you use.
 
@@ -12,13 +12,14 @@ The server currently uses Windows Integrated Authentication. SQL Server connecti
 
 ## Run the server
 
-From the repository directory:
+Start the server from PowerShell with:
 
 ```powershell
-cargo run
+.\dba-mcp-server.exe
 ```
 
-Defaults are port `8080` and MCP path `/mcp`. The server binds to `0.0.0.0`, so it listens on all network interfaces. It generates a 32-byte cryptographically random bearer token at startup unless `--token` is supplied. The token is printed to standard output with the endpoint URLs; treat it as a secret.
+The server listens on port `8080` at `/mcp` by default and prints its endpoint and bearer token at startup. Keep the token private.
+The default endpoint is `http://localhost:8080/mcp`.
 
 Available options:
 
@@ -31,15 +32,15 @@ Available options:
 | `--dns-name <name>` | none | Adds a DNS name to the MCP server's allowed Host list and prints its endpoint. |
 | `--token <token>` | generated | Uses a predefined bearer token. It must be non-empty and contain no whitespace. |
 
-For example:
+For example, to use port `9000`, a custom path, and a DNS name:
 
 ```powershell
-cargo run -- --port 9000 --path /database-tools --dns-name dba.example.com
+.\dba-mcp-server.exe --port 9000 --path /database-tools --dns-name dba.example.com
 ```
 
-The corresponding endpoint is `http://localhost:9000/database-tools` (also printed for the computer name and configured DNS name when available). The default endpoint is `http://localhost:8080/mcp`.
+The corresponding endpoint would be `http://localhost:9000/database-tools`. 
 
-Every request must include `Authorization: Bearer <token>`. Requests with a missing or incorrect token receive HTTP `401 Unauthorized`.
+Clients must send `Authorization: Bearer <token>`. The server rejects requests without the correct token.
 
 ### Connect a client
 
@@ -66,24 +67,15 @@ The SQL Server certificate is trusted by the client configuration. See [SQL Serv
 
 ## SQL Server permissions
 
-The server connects as the Windows identity running the MCP process. That identity must have a SQL Server login and access to the databases queried below. These grants cover the objects read by the repository's scripts; do not grant `sysadmin` or `db_owner` just to use this server. Replace `[DOMAIN\service-account]` with the Windows login. Apply only the version-specific server-state grant that applies.
+SQL Server access uses the Windows account running the server. Give that account a SQL Server login, access to the databases it needs, and only the read permissions for the tools you plan to use. The server does not need `sysadmin` or `db_owner`.
 
-| Tool(s) | Required access |
-| --- | --- |
-| `get_databases` | `VIEW ANY DATABASE` to see all databases. SQL Server grants this to `public` by default. If that default has been revoked or denied, grant it to the login. Offline database rows have stricter visibility: `ALTER ANY DATABASE` or `CREATE DATABASE` in `master` is required to see them. |
-| `get_current_activity` | SQL Server 2019 and earlier: server permission `VIEW SERVER STATE`. SQL Server 2022 and later: `VIEW SERVER PERFORMANCE STATE`. The query reads `sys.dm_exec_requests`, `sys.dm_exec_sessions`, and `sys.dm_exec_sql_text`; the principal needs `SELECT` on those objects if not otherwise granted. |
-| `get_disk_space` | `VIEW ANY DEFINITION` to see all rows in `sys.master_files`, plus `VIEW SERVER STATE` (SQL Server 2019 and earlier) or `VIEW SERVER PERFORMANCE STATE` (SQL Server 2022 and later) for `sys.dm_os_volume_stats`. The principal also needs `SELECT` on the DMV/DMF if not otherwise granted. |
-| `get_database_file_usage` | `VIEW ANY DEFINITION` to see all rows in `sys.master_files`. The catalog view also lists `ALTER ANY DATABASE` or `CREATE DATABASE` as alternatives; those are broader write-capable permissions and are not recommended for this read-only use. |
-| `get_backup_history_by_database` | In `msdb`, `SELECT` on `dbo.backupset` and `dbo.backupmediafamily`. |
-| `get_restore_history_by_database` | In `msdb`, `SELECT` on `dbo.restorehistory` and `dbo.backupset`. |
-| `get_sqlagent_jobs` | In `msdb`, `SELECT` on `dbo.sysjobs`. |
-| `get_sqlagent_job_history_by_job_name` | In `msdb`, `SELECT` on `dbo.sysjobs`, `dbo.sysjobhistory`, and `dbo.sysjobsteps`. |
-| `get_sqlagent_jobs_running_between_start_end_time` | In `msdb`, `SELECT` on `dbo.sysjobs` and `dbo.sysjobhistory`. |
-| `get_server_errorlog`, `get_agent_errorlog` | The scripts call `master.dbo.xp_readerrorlog` directly, so grant `EXECUTE` on that object to a database user in `master`. Also grant `VIEW SERVER STATE` on SQL Server 2019 and earlier. On SQL Server 2022 and later, grant `VIEW ANY ERROR LOG` (the narrower choice for log-only access) or `VIEW SERVER PERFORMANCE STATE`. |
-| `get_timeouts` | In each database queried, grant `VIEW DATABASE STATE` on SQL Server 2019 and earlier, or `VIEW DATABASE PERFORMANCE STATE` on SQL Server 2022 and later. The query reads `sys.query_store_runtime_stats`, `sys.query_store_plan`, `sys.query_store_query`, `sys.query_store_query_text`, and `sys.query_store_runtime_stats_interval`. Query Store must be enabled. |
-| `get_availability_group_status` | SQL Server 2019 and earlier: `VIEW ANY DEFINITION` and `VIEW SERVER STATE`. SQL Server 2022 and later: `VIEW ANY DEFINITION` and `VIEW SERVER PERFORMANCE STATE`. The query reads `sys.availability_groups`, `sys.availability_replicas`, `sys.dm_hadr_availability_replica_states`, and `sys.dm_hadr_database_replica_states`; grant `SELECT` on the DMVs if not otherwise granted. Availability Groups must be enabled and configured for results to be returned. |
+- **Database and file details:** `VIEW ANY DATABASE` and `VIEW ANY DEFINITION` at the server level. Seeing offline databases may require additional permissions.
+- **Activity, disk, and availability groups:** `VIEW SERVER STATE` on SQL Server 2019 and earlier, or `VIEW SERVER PERFORMANCE STATE` on SQL Server 2022 and later. Availability group tools also need `VIEW ANY DEFINITION`.
+- **Backups, restores, and SQL Agent:** grant `SELECT` on the relevant tables in `msdb` (`backupset`, `backupmediafamily`, `restorehistory`, `sysjobs`, `sysjobhistory`, `sysjobsteps`).
+- **Error logs:** grant `EXECUTE` on `dbo.xp_readerrorlog` to a user in `master`. On SQL Server 2019 and earlier, also grant `VIEW SERVER STATE`; on SQL Server 2022 and later, grant `VIEW ANY ERROR LOG` or `VIEW SERVER PERFORMANCE STATE`.
+- **Timeout reports:** grant `VIEW DATABASE STATE` (SQL Server 2019 and earlier) or `VIEW DATABASE PERFORMANCE STATE` (SQL Server 2022 and later) in each target database.
 
-For example, grant the server-scoped read permissions needed for database inventory, file metadata, and current activity on SQL Server 2022 or later:
+For example, these server-level grants enable common inventory and monitoring tools on SQL Server 2022 or later. Replace the login with the Windows account running the server:
 
 ```sql
 USE [master];
@@ -92,50 +84,7 @@ GRANT VIEW ANY DEFINITION TO [DOMAIN\service-account];
 GRANT VIEW SERVER PERFORMANCE STATE TO [DOMAIN\service-account];
 ```
 
-On SQL Server 2019 or earlier, replace the last grant with:
-
-```sql
-GRANT VIEW SERVER STATE TO [DOMAIN\service-account];
-```
-
-For SQL Server 2022 or later, `VIEW ANY ERROR LOG` is narrower than `VIEW SERVER PERFORMANCE STATE` when granting error-log access only. The login must also have a user in `master` for the object-level grant. Grant the direct extended-procedure permission in `master` for both log tools:
-
-```sql
-USE [master];
--- Create this database user only if it does not already exist.
-CREATE USER [DOMAIN\service-account] FOR LOGIN [DOMAIN\service-account];
-GRANT VIEW ANY ERROR LOG TO [DOMAIN\service-account];
-GRANT EXECUTE ON OBJECT::dbo.xp_readerrorlog TO [DOMAIN\service-account];
-```
-
-Grant `SELECT` only on the `msdb` objects required for the tools being enabled. For example, to enable backup, restore, and SQL Agent history/jobs:
-
-```sql
-USE [msdb];
--- Create this database user only if it does not already exist.
-CREATE USER [DOMAIN\service-account] FOR LOGIN [DOMAIN\service-account];
-GRANT SELECT ON OBJECT::dbo.backupset TO [DOMAIN\service-account];
-GRANT SELECT ON OBJECT::dbo.backupmediafamily TO [DOMAIN\service-account];
-GRANT SELECT ON OBJECT::dbo.restorehistory TO [DOMAIN\service-account];
-GRANT SELECT ON OBJECT::dbo.sysjobs TO [DOMAIN\service-account];
-GRANT SELECT ON OBJECT::dbo.sysjobhistory TO [DOMAIN\service-account];
-GRANT SELECT ON OBJECT::dbo.sysjobsteps TO [DOMAIN\service-account];
-```
-
-Map the login to a user in `msdb` before granting these object permissions. For Query Store, map the login to a user in each target database and grant the version-appropriate database permission there. The login must be able to connect to each database it queries; the standard `public` `CONNECT` grants usually provide this unless changed. `SQLAgentReaderRole` is a built-in alternative for SQL Agent visibility, but it also grants job-management capabilities for jobs owned by that user; object-level `SELECT` grants are narrower for this server's read-only queries.
-
-For Query Store on SQL Server 2022 or later, the database-specific grant looks like this (use `VIEW DATABASE STATE` instead on SQL Server 2019 and earlier):
-
-```sql
-USE [target_database];
--- Create this database user only if it does not already exist.
-CREATE USER [DOMAIN\service-account] FOR LOGIN [DOMAIN\service-account];
-GRANT VIEW DATABASE PERFORMANCE STATE TO [DOMAIN\service-account];
-```
-
-These are the minimum permissions implied by the statements in this repository, not a guarantee that every environment uses default system-object permissions. Explicit `DENY` entries, revoked `public` permissions, database state, SQL Server version, or disabled features can still prevent results. For database-scoped objects, the principal must be mapped to a database user and have `CONNECT`; a DMV/DMF can require both its state permission and `SELECT` on the object. Microsoft documents the relevant requirements for [`sys.databases`](https://learn.microsoft.com/en-us/sql/relational-databases/system-catalog-views/sys-databases-transact-sql), [`sys.master_files`](https://learn.microsoft.com/en-us/sql/relational-databases/system-catalog-views/sys-master-files-transact-sql), [server/database DMVs](https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/system-dynamic-management-views), [Query Store views](https://learn.microsoft.com/en-us/sql/relational-databases/system-catalog-views/sys-query-store-runtime-stats-transact-sql), [error-log reading](https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-readerrorlog-transact-sql), [SQL Server Agent roles](https://learn.microsoft.com/en-us/ssms/agent/sql-server-agent-fixed-database-roles), and [Always On monitoring](https://learn.microsoft.com/en-us/sql/database-engine/availability-groups/windows/monitor-availability-groups-transact-sql).
-
-The error-log scripts call the undocumented extended procedure `xp_readerrorlog`, not Microsoft's documented `sp_readerrorlog` wrapper. The explicit `EXECUTE` grant above matches the object the scripts invoke; the version-specific log permission follows Microsoft's published error-log permission guidance. If a SQL Server build still rejects the direct extended-procedure call, migrate the query to the documented wrapper and use its documented permissions.
+Use `VIEW SERVER STATE` in place of `VIEW SERVER PERFORMANCE STATE` on SQL Server 2019 and earlier. Database-level access requires a user mapped to the login in each database. Actual access can also depend on SQL Server version, explicit denies, and enabled features.
 
 ## Tools
 
@@ -157,23 +106,4 @@ All tools are read-only.
 | `get_timeouts` | `instance`, `database`, optional `start_datetime`, optional `end_datetime` | Reads client-aborted Query Store execution aggregates from intervals overlapping the range. Defaults to the previous hour through now. |
 | `get_availability_group_status` | `instance` | Reports availability group replica roles, operational/connection/health state, last connection error, and send/redo queue sizes. |
 
-### Query Store limitation
 
-Query Store records client-aborted executions but does not say whether an abort was specifically caused by a timeout. Runtime statistics are aggregated by interval, so `get_timeouts` returns possible timeout candidates and interval-level aggregates, not individual timeout events. Query Store must be enabled for the target database.
-
-## Project layout
-
-- `src/main.rs` — command-line options, bearer authentication, and Streamable HTTP server startup.
-- `src/db.rs` — SQL Server connection, query execution, and conversion of result rows to JSON.
-- `src/tools/` — MCP tool registrations and argument handling.
-- `queries/` — SQL statements embedded by the corresponding tool modules.
-- `.codex/config.toml` — Codex project MCP registration and token environment-variable name.
-- `mcp.json` — sample MCP client configuration with a prompted token input.
-- `.agents/skills/dba-mcp-server/SKILL.md` — instructions for using the project's DBA MCP tools.
-
-## Build
-
-```powershell
-cargo build
-cargo build --release
-```
