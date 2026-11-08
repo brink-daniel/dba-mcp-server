@@ -5,10 +5,10 @@ Use the MCP client to check SQL Server health, activity, backups, SQL Agent jobs
 ## Requirements
 
 - Windows and the `dba-mcp-server.exe` executable.
-- Network access from the server process to each target SQL Server.
+- Network access from the server process to each target SQL Server instance.
 - A Windows account with the SQL Server permissions required by the tools you use.
 
-The server currently uses Windows Integrated Authentication. SQL Server connections on non-Windows platforms return an error.
+The server currently only supports Windows Integrated Authentication. 
 
 ## Run the server
 
@@ -38,7 +38,7 @@ For example, to use port `9000`, a custom path, and a DNS name:
 .\dba-mcp-server.exe --port 9000 --path /database-tools --dns-name dba.example.com
 ```
 
-The corresponding endpoint would be `http://localhost:9000/database-tools`. 
+The corresponding endpoint would be `http://dba.example.com:9000/database-tools`. 
 
 Clients must send `Authorization: Bearer <token>`. The server rejects requests without the correct token.
 
