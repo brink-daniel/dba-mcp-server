@@ -30,7 +30,7 @@ pub(crate) struct SqlServerTools {
 impl SqlServerTools {
     pub(crate) fn new() -> Self {
         Self {
-            tool_router: SqlServerTools::timeouts_router()
+            tool_router: SqlServerTools::query_store_router()
                 + SqlServerTools::activity_router()
                 + SqlServerTools::jobs_router()
                 + SqlServerTools::admin_router(),

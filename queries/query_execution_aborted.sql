@@ -19,7 +19,7 @@ JOIN sys.query_store_query_text AS qt
     ON qt.query_text_id = q.query_text_id
 JOIN sys.query_store_runtime_stats_interval AS rsi
     ON rsi.runtime_stats_interval_id = rs.runtime_stats_interval_id
-WHERE rs.execution_type = 3 -- Aborted by client; Query Store does not identify timeouts separately.
+WHERE rs.execution_type = 3 -- Aborted by client
     AND rsi.start_time < @P2
     AND rsi.end_time > @P1
 GROUP BY

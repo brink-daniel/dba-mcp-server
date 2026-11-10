@@ -73,7 +73,7 @@ SQL Server access uses the Windows account running the server. Give that account
 - **Activity, disk, and availability groups:** `VIEW SERVER STATE` on SQL Server 2019 and earlier, or `VIEW SERVER PERFORMANCE STATE` on SQL Server 2022 and later. Availability group tools also need `VIEW ANY DEFINITION`.
 - **Backups, restores, and SQL Agent:** grant `SELECT` on the relevant tables in `msdb` (`backupset`, `backupmediafamily`, `restorehistory`, `sysjobs`, `sysjobhistory`, `sysjobsteps`).
 - **Error logs:** grant `EXECUTE` on `dbo.xp_readerrorlog` to a user in `master`. On SQL Server 2019 and earlier, also grant `VIEW SERVER STATE`; on SQL Server 2022 and later, grant `VIEW ANY ERROR LOG` or `VIEW SERVER PERFORMANCE STATE`.
-- **Timeout reports:** grant `VIEW DATABASE STATE` (SQL Server 2019 and earlier) or `VIEW DATABASE PERFORMANCE STATE` (SQL Server 2022 and later) in each target database.
+- **Query Store execution reports:** grant `VIEW DATABASE STATE` (SQL Server 2019 and earlier) or `VIEW DATABASE PERFORMANCE STATE` (SQL Server 2022 and later) in each target database.
 
 For example, these server-level grants enable common inventory and monitoring tools on SQL Server 2022 or later. Replace the login with the Windows account running the server:
 
@@ -103,7 +103,8 @@ All tools are read-only.
 | `get_sqlagent_jobs` | `instance` | Lists SQL Server Agent jobs and basic metadata. |
 | `get_sqlagent_job_history_by_job_name` | `instance`, `job_name` | Reads execution history for a named job, including step/outcome, status, duration, and message. |
 | `get_sqlagent_jobs_running_between_start_end_time` | `instance`, `start_datetime`, `end_datetime` | Lists job runs that overlap a time range. Supply ISO 8601 date-time values in `YYYY-MM-DDTHH:MM:SS` form; fractional seconds are accepted. |
-| `get_timeouts` | `instance`, `database`, optional `start_datetime`, optional `end_datetime` | Reads client-aborted Query Store execution aggregates from intervals overlapping the range. Defaults to the previous hour through now. |
+| `get_query_execution_aborted` | `instance`, `database`, optional `start_datetime`, optional `end_datetime` | Reads Query Store client-aborted execution aggregates from intervals overlapping the range. Defaults to the previous hour through now. |
+| `get_query_execution_exception` | `instance`, `database`, optional `start_datetime`, optional `end_datetime` | Reads Query Store execution exception aggregates from intervals overlapping the range. Defaults to the previous hour through now. |
 | `get_availability_group_status` | `instance` | Reports availability group replica roles, operational/connection/health state, last connection error, and send/redo queue sizes. |
 
 
