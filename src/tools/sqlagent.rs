@@ -38,7 +38,11 @@ struct JobsRunningBetweenArgs {
 #[tool_router(router = jobs_router, vis = "pub(super)")]
 #[allow(non_snake_case)]
 impl SqlServerTools {
-    #[tool(description = "Lists SQL Server Agent jobs on a SQL Server instance")]
+    #[tool(
+		name = "get_sqlagent_jobs",
+		description = "Lists SQL Server Agent jobs on a SQL Server instance",
+        annotations(read_only_hint = true, idempotent_hint = true)
+	)]
     async fn get_sqlagent_jobs(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
         log_tool_call("get_sqlagent_jobs", async {
             query_instance(
@@ -53,7 +57,11 @@ impl SqlServerTools {
         .await
     }
 
-    #[tool(description = "Retrieves execution history for a SQL Server Agent job by name")]
+    #[tool(
+		name = "get_sqlagent_job_history_by_job_name",
+		description = "Retrieves execution history for a SQL Server Agent job by name",
+        annotations(read_only_hint = true, idempotent_hint = true)
+	)]
     async fn get_sqlagent_job_history_by_job_name(
         &self,
         Parameters(args): Parameters<JobHistoryArgs>,
@@ -72,7 +80,11 @@ impl SqlServerTools {
         .await
     }
 
-    #[tool(description = "Lists SQL Server Agent job executions that overlapped a time range")]
+    #[tool(
+		name = "get_sqlagent_jobs_running_between_start_end_time",
+		description = "Lists SQL Server Agent job executions that overlapped a time range",
+        annotations(read_only_hint = true, idempotent_hint = true)
+	)]
     async fn get_sqlagent_jobs_running_between_start_end_time(
         &self,
         Parameters(args): Parameters<JobsRunningBetweenArgs>,

@@ -17,7 +17,11 @@ struct InstanceArgs {
 
 #[tool_router(router = activity_router, vis = "pub(super)")]
 impl SqlServerTools {
-    #[tool(description = "Retrieves the current SQL Server activity")]
+    #[tool(
+		name = "get_current_activity",
+		description = "Retrieves the current SQL Server activity",
+        annotations(read_only_hint = true, idempotent_hint = true)
+	)]
     async fn get_current_activity(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
         log_tool_call("get_current_activity", async {
             query_instance(&args.instance, None, CURRENT_ACTIVITY_QUERY.trim(), &[])
@@ -27,7 +31,11 @@ impl SqlServerTools {
         .await
     }
 
-    #[tool(description = "Lists the databases available on a SQL Server instance")]
+    #[tool(
+		name = "get_databases",
+		description = "Lists the databases available on a SQL Server instance",
+        annotations(read_only_hint = true, idempotent_hint = true)
+	)]
     async fn get_databases(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
         log_tool_call("get_databases", async {
             query_instance(
@@ -43,7 +51,9 @@ impl SqlServerTools {
     }
 
     #[tool(
-        description = "Reports total and available disk space for volumes containing SQL Server database files"
+        name = "get_disk_space",
+		description = "Reports total and available disk space for volumes containing SQL Server database files",
+        annotations(read_only_hint = true, idempotent_hint = true)
     )]
     async fn get_disk_space(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
         log_tool_call("get_disk_space", async {
@@ -55,7 +65,9 @@ impl SqlServerTools {
     }
 
     #[tool(
-        description = "Reports allocated size, maximum size, and autogrowth settings for database files"
+        name = "get_database_file_usage",
+		description = "Reports allocated size, maximum size, and autogrowth settings for database files",
+        annotations(read_only_hint = true, idempotent_hint = true)
     )]
     async fn get_database_file_usage(&self, Parameters(args): Parameters<InstanceArgs>) -> String {
         log_tool_call("get_database_file_usage", async {

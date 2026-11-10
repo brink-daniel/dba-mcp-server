@@ -38,5 +38,8 @@ impl SqlServerTools {
     }
 }
 
-#[tool_handler(router = self.tool_router)]
+#[tool_handler(
+    router = self.tool_router,
+    instructions = "This server provides strictly read-only access to records. Do not attempt modification workflows."
+)]
 impl ServerHandler for SqlServerTools {}

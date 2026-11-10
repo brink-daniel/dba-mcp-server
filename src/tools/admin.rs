@@ -36,7 +36,11 @@ struct AvailabilityGroupStatusArgs {
 
 #[tool_router(router = admin_router, vis = "pub(super)")]
 impl SqlServerTools {
-    #[tool(description = "Retrieves backup history for a database on a SQL Server instance")]
+    #[tool(
+		name = "get_backup_history_by_database",
+		description = "Retrieves backup history for a database on a SQL Server instance",
+        annotations(read_only_hint = true, idempotent_hint = true)
+	)]
     async fn get_backup_history_by_database(
         &self,
         Parameters(args): Parameters<BackupHistoryArgs>,
@@ -55,7 +59,11 @@ impl SqlServerTools {
         .await
     }
 
-    #[tool(description = "Retrieves restore history for a database on a SQL Server instance")]
+    #[tool(
+		name = "get_restore_history_by_database",
+		description = "Retrieves restore history for a database on a SQL Server instance",
+        annotations(read_only_hint = true, idempotent_hint = true)
+	)]
     async fn get_restore_history_by_database(
         &self,
         Parameters(args): Parameters<BackupHistoryArgs>,
@@ -74,7 +82,11 @@ impl SqlServerTools {
         .await
     }
 
-    #[tool(description = "Reads entries from the SQL Server error log")]
+    #[tool(
+		name = "get_server_errorlog",
+		description = "Reads entries from the SQL Server error log",
+        annotations(read_only_hint = true, idempotent_hint = true)
+	)]
     async fn get_server_errorlog(&self, Parameters(args): Parameters<ErrorLogArgs>) -> String {
         log_tool_call(
             "get_server_errorlog",
@@ -87,7 +99,11 @@ impl SqlServerTools {
         .await
     }
 
-    #[tool(description = "Reads entries from the SQL Server Agent error log")]
+    #[tool(
+		name = "get_agent_errorlog",
+		description = "Reads entries from the SQL Server Agent error log",
+        annotations(read_only_hint = true, idempotent_hint = true)
+	)]
     async fn get_agent_errorlog(&self, Parameters(args): Parameters<ErrorLogArgs>) -> String {
         log_tool_call(
             "get_agent_errorlog",
@@ -101,7 +117,9 @@ impl SqlServerTools {
     }
 
     #[tool(
-        description = "Retrieves availability group and replica health status for a SQL Server instance"
+        name = "get_availability_group_status",
+        description = "Retrieves availability group and replica health status for a SQL Server instance",
+        annotations(read_only_hint = true, idempotent_hint = true)
     )]
     async fn get_availability_group_status(
         &self,

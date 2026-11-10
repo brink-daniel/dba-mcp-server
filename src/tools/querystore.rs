@@ -22,7 +22,9 @@ struct TimeoutArgs {
 #[tool_router(router = timeouts_router, vis = "pub(super)")]
 impl SqlServerTools {
     #[tool(
-        description = "Retrieves client-aborted Query Store executions in intervals overlapping the given time range; these may include timeouts"
+        name = "get_timeouts",
+		description = "Retrieves client-aborted Query Store executions in intervals overlapping the given time range; these may include timeouts",
+        annotations(read_only_hint = true, idempotent_hint = true)
     )]
     async fn get_timeouts(&self, Parameters(args): Parameters<TimeoutArgs>) -> String {
         log_tool_call("get_timeouts", async {
