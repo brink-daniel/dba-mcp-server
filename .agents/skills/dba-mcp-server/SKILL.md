@@ -22,6 +22,10 @@ Use the `dba_mcp_server` MCP connection for SQL Server administration and diagno
   - `get_current_activity(instance)` — shows active requests, waits, blockers, and SQL text.
   - `get_disk_space(instance)` — reports disk capacity for SQL Server data volumes.
   - `get_database_file_usage(instance)` — reports database file size, growth settings, and paths.
+  - `get_wait_stats(instance)` — reports cumulative non-idle wait statistics since the last SQL Server restart; interpret with uptime and workload.
+  - `get_top_queries_by_cpu(instance)` — lists cached statements by cumulative CPU since plan compilation; entries can disappear when plans leave cache.
+  - `get_missing_indexes(instance)` — lists advisory missing-index DMV estimates, which can overlap existing indexes and reset with cache events.
+  - `get_tempdb_usage(instance)` — reports current tempdb space and sessions with the largest cumulative session allocations.
   - `get_backup_history_by_database(instance, database)` — reads backup history.
   - `get_restore_history_by_database(instance, database)` — reads restore history.
   - `get_server_errorlog(instance, log_number?)` — reads the SQL Server error log.

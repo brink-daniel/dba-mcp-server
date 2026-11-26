@@ -21,6 +21,20 @@ Start the server from PowerShell with:
 The server listens on port `8080` at `/mcp` by default and prints its endpoint and bearer token at startup. Keep the token private.
 The default endpoint is `http://localhost:8080/mcp`.
 
+### Build and demo scripts
+
+From the repository directory, run these Windows command scripts:
+
+```bat
+build-dev.cmd
+build-release.cmd
+run-demo.cmd
+```
+
+The build scripts produce the debug and optimized release binaries under `target`. `run-demo.cmd` starts the server with the fixed bearer token `dba-mcp-server-demo-token`, which is intended only for local demos and must not be used on an untrusted network. The current server listens on all network interfaces, so restrict network access when using the demo script.
+
+For other runs, start `dba-mcp-server.exe` directly and allow it to generate a random token, or provide a private token with `--token`.
+
 Available options:
 
 | Option | Default | Purpose |
@@ -70,7 +84,7 @@ The SQL Server certificate is trusted by the client configuration. See [SQL Serv
 SQL Server access uses the Windows account running the server. Give that account a SQL Server login, access to the databases it needs, and only the read permissions for the tools you plan to use. The server does not need `sysadmin` or `db_owner`.
 
 - **Database and file details:** `VIEW ANY DATABASE` and `VIEW ANY DEFINITION` at the server level. Seeing offline databases may require additional permissions.
-- **Activity, disk, and availability groups:** `VIEW SERVER STATE` on SQL Server 2019 and earlier, or `VIEW SERVER PERFORMANCE STATE` on SQL Server 2022 and later. Availability group tools also need `VIEW ANY DEFINITION`.
+- **Activity, disk, availability groups, wait stats, query plan cache, missing-index DMVs, and tempdb usage:** `VIEW SERVER STATE` on SQL Server 2019 and earlier, or `VIEW SERVER PERFORMANCE STATE` on SQL Server 2022 and later. Availability group tools also need `VIEW ANY DEFINITION`.
 - **Backups, restores, and SQL Agent:** grant `SELECT` on the relevant tables in `msdb` (`backupset`, `backupmediafamily`, `restorehistory`, `sysjobs`, `sysjobhistory`, `sysjobsteps`).
 - **Error logs:** grant `EXECUTE` on `dbo.xp_readerrorlog` to a user in `master`. On SQL Server 2019 and earlier, also grant `VIEW SERVER STATE`; on SQL Server 2022 and later, grant `VIEW ANY ERROR LOG` or `VIEW SERVER PERFORMANCE STATE`.
 - **Query Store execution reports:** grant `VIEW DATABASE STATE` (SQL Server 2019 and earlier) or `VIEW DATABASE PERFORMANCE STATE` (SQL Server 2022 and later) in each target database.
@@ -96,6 +110,10 @@ All tools are read-only.
 | `get_current_activity` | `instance` | Shows active user requests, session details, waits, blockers, resource counts, SQL statement, and batch text. |
 | `get_disk_space` | `instance` | Reports total and available space for volumes containing SQL Server database files. |
 | `get_database_file_usage` | `instance` | Reports allocated file size, maximum size, autogrowth, and file path. Allocated size is not used-page space. |
+| `get_wait_stats` | `instance` | Reports the largest non-idle cumulative wait types since the last SQL Server restart. Interpret with server uptime and workload; wait statistics are not reset by this tool. |
+| `get_top_queries_by_cpu` | `instance` | Lists the top 25 cached statements by total CPU, with execution counts and average resource use. Values accrue since each plan was compiled and disappear when a plan leaves cache or SQL Server restarts. |
+| `get_missing_indexes` | `instance` | Lists up to 50 missing-index DMV suggestions ranked by estimated impact. These are workload-dependent estimates, may overlap existing indexes, and are cleared on restart or other cache events. |
+| `get_tempdb_usage` | `instance` | Reports tempdb free space, version store and object allocations, plus sessions with the largest cumulative tempdb allocations since their session began. |
 | `get_backup_history_by_database` | `instance`, `database` | Reads backup history from `msdb`, including backup type, start/finish, sizes, server, and media path. |
 | `get_restore_history_by_database` | `instance`, `database` | Reads restore history from `msdb`, including destination, restore type, date, options, user, and source backup times. |
 | `get_server_errorlog` | `instance`, optional `log_number` | Reads a SQL Server error log. `log_number` defaults to `0` (current); `1` is the previous log. |
